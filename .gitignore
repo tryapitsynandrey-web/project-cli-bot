@@ -69,4 +69,5 @@ __pypackages__/
 
 # Optional local database files
 *.sqlite3
-*.sqlite3-journal
+*.sqlite3-journal 
+data/
