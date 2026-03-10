@@ -1,0 +1,16 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^python -m py_compile main\\.py assistant_bot\\/app\\.py assistant_bot\\/cli\\/.*\\.py assistant_bot\\/domain\\/.*\\.py assistant_bot\\/services\\/.*\\.py assistant_bot\\/storage\\/.*\\.py assistant_bot\\/utils\\/.*\\.py && echo \"✓ Syntax check passed\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python main\\.py << EOF\\nhelp\\nexit\\nEOF\\n$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python main\\.py << EOF\\nbd\\nexit\\nEOF\\n$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+} 

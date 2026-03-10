@@ -1,3 +1,6 @@
-packaging==26.0
-setuptools==82.0.1
-wheel==0.46.3
+email-validator==2.3.0
+dnspython==2.7.0
+phonenumbers==9.0.25
+prompt-toolkit==3.0.52
+wcwidth==0.2.13
+colorama==0.4.6
