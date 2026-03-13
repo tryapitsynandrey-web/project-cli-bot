@@ -1,5 +1,7 @@
 """Domain package exports."""
 
+from __future__ import annotations
+
 from assistant_bot.domain.contacts import Contact
 from assistant_bot.domain.exceptions import (
     ContactNotFoundError,

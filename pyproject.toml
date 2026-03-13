@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "assistant-bot"
+version = "0.1.0"
+description = "CLI personal assistant for managing contacts and notes"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Andrii Triapitsyn", email = "solabola@pm.me" },
+  { name = "Iryna Zvirkovska", email = "irene.zvirkovska@gmail.com" },
+  { name = "Valeriy H", email = "valeriy2006@gmail.com" },
+  { name = "Oksana Levchenko", email = "oksa.levchenko@gmail.com" }
+]
+dependencies = [
+  "email-validator>=2.3.0,<3",
+  "phonenumbers>=9.0.25,<10",
+  "prompt-toolkit>=3.0.0,<4",
+  "colorama>=0.4.6,<1"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Office/Business",
+  "Topic :: Utilities"
+]
+keywords = ["cli", "assistant", "contacts", "notes", "personal-organizer"]
+
+[project.scripts]
+assistant-bot = "assistant_bot.__main__:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.0,<10",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["assistant_bot*"]

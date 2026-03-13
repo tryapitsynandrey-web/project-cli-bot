@@ -1,5 +1,7 @@
 """Note domain model."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime
 import uuid
@@ -11,15 +13,25 @@ from assistant_bot.utils.validators import (
 )
 
 
+def _generate_id() -> str:
+    """Return a new unique identifier."""
+    return str(uuid.uuid4())
+
+
+def _timestamp_now() -> str:
+    """Return the current timestamp in ISO format."""
+    return datetime.now().isoformat()
+
+
 @dataclass(slots=True)
 class Note:
     """Represent a text note with optional tags."""
 
     content: str
     tags: list[str] = field(default_factory=list)
-    note_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    note_id: str = field(default_factory=_generate_id)
+    created_at: str = field(default_factory=_timestamp_now)
+    updated_at: str = field(default_factory=_timestamp_now)
 
     @classmethod
     def create(cls, content: str, tags: list[str] | None = None) -> "Note":
@@ -49,23 +61,23 @@ class Note:
                 changed = True
 
         if changed:
-            self.updated_at = datetime.now().isoformat()
+            self.updated_at = _timestamp_now()
 
     def add_tag(self, tag: str) -> None:
         """Add a validated tag to the note if it is not already present."""
         validated_tag = validate_tag(tag)
         if validated_tag not in self.tags:
             self.tags.append(validated_tag)
-            self.updated_at = datetime.now().isoformat()
+            self.updated_at = _timestamp_now()
 
     def remove_tag(self, tag: str) -> None:
         """Remove a validated tag from the note if present."""
         validated_tag = validate_tag(tag)
         if validated_tag in self.tags:
             self.tags.remove(validated_tag)
-            self.updated_at = datetime.now().isoformat()
+            self.updated_at = _timestamp_now()
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         """Convert the note to a serializable dictionary."""
         return {
             "note_id": self.note_id,
@@ -76,24 +88,26 @@ class Note:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Note":
+    def from_dict(cls, data: dict[str, object]) -> "Note":
         """Create a note instance from stored data."""
-        tags = cls._normalize_tags(data.get("tags", []))
+        raw_tags = data.get("tags", [])
+        tag_values = raw_tags if isinstance(raw_tags, list) else []
+        tags = cls._normalize_tags([str(tag) for tag in tag_values])
 
         return cls(
-            content=data["content"],
+            content=validate_note_content(str(data["content"])),
             tags=tags,
-            note_id=data.get("note_id", str(uuid.uuid4())),
-            created_at=data.get("created_at", datetime.now().isoformat()),
-            updated_at=data.get("updated_at", datetime.now().isoformat()),
+            note_id=str(data.get("note_id", _generate_id())),
+            created_at=str(data.get("created_at", _timestamp_now())),
+            updated_at=str(data.get("updated_at", _timestamp_now())),
         )
 
     def matches_search(self, query: str) -> bool:
         """Return True if the query matches note content or tags."""
-        query_lower = query.lower()
+        normalized_query = query.lower()
         return (
-            query_lower in self.content.lower()
-            or any(query_lower in tag for tag in self.tags)
+            normalized_query in self.content.lower()
+            or any(normalized_query in tag for tag in self.tags)
         )
 
     def has_tag(self, tag: str) -> bool:

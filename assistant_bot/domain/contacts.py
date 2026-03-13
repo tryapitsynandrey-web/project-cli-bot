@@ -1,5 +1,7 @@
 """Contact domain model."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime
 import uuid
@@ -15,6 +17,16 @@ from assistant_bot.utils.validators import (
 )
 
 
+def _generate_id() -> str:
+    """Return a new unique identifier."""
+    return str(uuid.uuid4())
+
+
+def _timestamp_now() -> str:
+    """Return the current timestamp in ISO format."""
+    return datetime.now().isoformat()
+
+
 @dataclass(slots=True)
 class Contact:
     """Represent a contact with personal data and tags."""
@@ -26,8 +38,8 @@ class Contact:
     birthday: str | None = None
     note: str | None = None
     tags: list[str] = field(default_factory=list)
-    contact_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    contact_id: str = field(default_factory=_generate_id)
+    created_at: str = field(default_factory=_timestamp_now)
 
     @classmethod
     def create(
@@ -42,7 +54,11 @@ class Contact:
     ) -> "Contact":
         """Create a validated contact instance."""
         validated_name = validate_name(name)
-        validated_phones = [validate_phone(phone) for phone in phone_numbers if phone]
+        validated_phones = [
+            validate_phone(phone)
+            for phone in phone_numbers
+            if phone
+        ]
 
         if not validated_phones:
             raise ValueError("At least one phone number is required")
@@ -90,7 +106,11 @@ class Contact:
             self.note = self._normalize_note(note)
 
         if phone_numbers is not None:
-            validated_phones = [validate_phone(phone) for phone in phone_numbers if phone]
+            validated_phones = [
+                validate_phone(phone)
+                for phone in phone_numbers
+                if phone
+            ]
             if not validated_phones:
                 raise ValueError("At least one phone number is required")
             self.phone_numbers = validated_phones
@@ -112,13 +132,10 @@ class Contact:
         if old_normalized not in self.tags:
             return
 
-        updated_tags = []
-        for tag in self.tags:
-            if tag == old_normalized:
-                updated_tags.append(validated_new_tag)
-            else:
-                updated_tags.append(tag)
-
+        updated_tags = [
+            validated_new_tag if tag == old_normalized else tag
+            for tag in self.tags
+        ]
         self.tags = self._normalize_tags(updated_tags)
 
     def remove_tag(self, tag: str) -> None:
@@ -147,7 +164,6 @@ class Contact:
                 continue
 
             validated = validate_tag(normalized)
-
             if validated in seen:
                 continue
 
@@ -156,7 +172,7 @@ class Contact:
 
         return normalized_tags
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         """Convert the contact to a serializable dictionary."""
         return {
             "contact_id": self.contact_id,
@@ -171,24 +187,28 @@ class Contact:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Contact":
+    def from_dict(cls, data: dict[str, object]) -> "Contact":
         """Create a contact instance from stored data."""
         raw_phone_numbers = data.get("phone_numbers", [])
+        phone_values = raw_phone_numbers if isinstance(raw_phone_numbers, list) else []
         phone_numbers = [
             validate_phone(str(phone).strip())
-            for phone in raw_phone_numbers
+            for phone in phone_values
             if str(phone).strip()
         ]
 
         if not phone_numbers:
             raise ValueError("Stored contact must contain at least one valid phone number")
 
-        name = validate_name(data["name"])
-        address = validate_address(data["address"]) if data.get("address") else None
-        email = validate_email(data["email"]) if data.get("email") else None
-        birthday = validate_birthday(data["birthday"]) if data.get("birthday") else None
-        note = cls._normalize_note(data.get("note"))
-        tags = cls._normalize_tags(data.get("tags", []))
+        raw_tags = data.get("tags", [])
+        tag_values = raw_tags if isinstance(raw_tags, list) else []
+        tags = cls._normalize_tags([str(tag) for tag in tag_values])
+
+        name = validate_name(str(data["name"]))
+        address = validate_address(str(data["address"])) if data.get("address") else None
+        email = validate_email(str(data["email"])) if data.get("email") else None
+        birthday = validate_birthday(str(data["birthday"])) if data.get("birthday") else None
+        note = cls._normalize_note(str(data["note"])) if data.get("note") is not None else None
 
         return cls(
             name=name,
@@ -198,21 +218,22 @@ class Contact:
             birthday=birthday,
             note=note,
             tags=tags,
-            contact_id=data.get("contact_id", str(uuid.uuid4())),
-            created_at=data.get("created_at", datetime.now().isoformat()),
+            contact_id=str(data.get("contact_id", _generate_id())),
+            created_at=str(data.get("created_at", _timestamp_now())),
         )
 
     def matches_search(self, query: str) -> bool:
         """Return True if the query matches any searchable contact field."""
-        query_lower = query.lower().strip()
-        if not query_lower:
+        normalized_query = query.lower().strip()
+        if not normalized_query:
             return False
 
-        return (
-            query_lower in self.name.lower()
-            or (self.email is not None and query_lower in self.email.lower())
-            or (self.address is not None and query_lower in self.address.lower())
-            or (self.note is not None and query_lower in self.note.lower())
-            or any(query_lower in phone.lower() for phone in self.phone_numbers)
-            or any(query_lower in tag.lower() for tag in self.tags)
-        )
+        searchable_values = [
+            self.name,
+            self.email or "",
+            self.address or "",
+            self.note or "",
+            *self.phone_numbers,
+            *self.tags,
+        ]
+        return any(normalized_query in value.lower() for value in searchable_values)

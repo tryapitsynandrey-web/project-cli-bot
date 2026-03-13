@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 from difflib import SequenceMatcher
+from typing import Iterable
+
+PREFIX_MATCH_BOOST = 0.25
+TOKEN_PREFIX_MATCH_BOOST = 0.15
+SUBSTRING_MATCH_BOOST = 0.10
 
 
 def _normalize(value: str) -> str:
@@ -10,33 +15,33 @@ def _normalize(value: str) -> str:
     return value.strip().lower()
 
 
+def _unique_candidates(candidates: Iterable[str]) -> list[str]:
+    """Return candidates with duplicates removed, preserving order."""
+    return list(dict.fromkeys(candidates))
+
+
 def similarity(a: str, b: str) -> float:
     """Return a similarity score between two strings in the range [0.0, 1.0]."""
-    a_norm = _normalize(a)
-    b_norm = _normalize(b)
+    left = _normalize(a)
+    right = _normalize(b)
 
-    if not a_norm or not b_norm:
+    if not left or not right:
         return 0.0
 
-    if a_norm == b_norm:
+    if left == right:
         return 1.0
 
-    base_score = SequenceMatcher(None, a_norm, b_norm).ratio()
+    base_score = SequenceMatcher(None, left, right).ratio()
 
-    # Strong boost for prefix matches such as:
-    # add-con -> add-contact
-    if b_norm.startswith(a_norm):
-        return min(1.0, base_score + 0.25)
+    if right.startswith(left):
+        return min(1.0, base_score + PREFIX_MATCH_BOOST)
 
-    # Boost when the input matches the beginning of any token split by '-'
-    # Example: "contact" vs "add-contact"
-    b_parts = b_norm.split("-")
-    if any(part.startswith(a_norm) for part in b_parts):
-        return min(1.0, base_score + 0.15)
+    right_parts = right.split("-")
+    if any(part.startswith(left) for part in right_parts):
+        return min(1.0, base_score + TOKEN_PREFIX_MATCH_BOOST)
 
-    # Small boost when input is contained in the candidate
-    if a_norm in b_norm:
-        return min(1.0, base_score + 0.10)
+    if left in right:
+        return min(1.0, base_score + SUBSTRING_MATCH_BOOST)
 
     return base_score
 
@@ -51,12 +56,10 @@ def find_closest_match(
     if not normalized_input or not candidates:
         return None
 
-    unique_candidates = list(dict.fromkeys(candidates))
     scored_candidates = [
         (candidate, similarity(normalized_input, candidate))
-        for candidate in unique_candidates
+        for candidate in _unique_candidates(candidates)
     ]
-
     best_match, best_score = max(scored_candidates, key=lambda item: item[1])
 
     if best_score >= threshold:
@@ -75,10 +78,9 @@ def find_all_similar(
     if not normalized_input or not candidates:
         return []
 
-    unique_candidates = list(dict.fromkeys(candidates))
     matches: list[tuple[str, float]] = []
 
-    for candidate in unique_candidates:
+    for candidate in _unique_candidates(candidates):
         score = similarity(normalized_input, candidate)
         if score >= threshold:
             matches.append((candidate, score))

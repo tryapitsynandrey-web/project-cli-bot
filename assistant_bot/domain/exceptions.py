@@ -1,5 +1,7 @@
 """Custom exceptions for the personal assistant domain."""
 
+from __future__ import annotations
+
 
 class PersonalAssistantError(Exception):
     """Base exception for all application-specific errors."""

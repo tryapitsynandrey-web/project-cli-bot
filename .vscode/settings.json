@@ -1,6 +1,11 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "/^python -m py_compile main\\.py assistant_bot\\/app\\.py assistant_bot\\/cli\\/.*\\.py assistant_bot\\/domain\\/.*\\.py assistant_bot\\/services\\/.*\\.py assistant_bot\\/storage\\/.*\\.py assistant_bot\\/utils\\/.*\\.py && echo \"✓ Syntax check passed\"$/": {
+        "pytest": true,
+        "/^python -m pytest tests -v --tb=short(?: 2>&1 \\| tail -100)?$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -m py_compile main\\.py assistant_bot\\/__main__\\.py assistant_bot\\/app\\.py assistant_bot\\/cli\\/.*\\.py assistant_bot\\/domain\\/.*\\.py assistant_bot\\/repositories\\/.*\\.py assistant_bot\\/services\\/.*\\.py assistant_bot\\/storage\\/.*\\.py assistant_bot\\/utils\\/.*\\.py(?: && echo \"✓ Syntax check passed\")?$/": {
             "approve": true,
             "matchCommandLine": true
         },
@@ -11,6 +16,10 @@
         "/^python main\\.py << EOF\\nbd\\nexit\\nEOF\\n$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^assistant-bot << EOF\\nhelp\\nexit\\nEOF\\n$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
-} 
+}

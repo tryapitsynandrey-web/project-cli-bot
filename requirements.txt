@@ -1,6 +1,8 @@
-email-validator==2.3.0
-dnspython==2.7.0
-phonenumbers==9.0.25
-prompt-toolkit==3.0.52
-wcwidth==0.2.13
-colorama==0.4.6
+# Runtime dependencies
+email-validator>=2.3.0,<3
+phonenumbers>=9.0.25,<10
+prompt-toolkit>=3.0.0,<4
+colorama>=0.4.6,<1
+
+# Development / testing
+pytest>=9.0,<10

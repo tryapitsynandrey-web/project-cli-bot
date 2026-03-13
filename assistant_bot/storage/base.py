@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 
 from assistant_bot.domain.contacts import Contact
 from assistant_bot.domain.notes import Note
@@ -16,7 +17,7 @@ class BaseStorage(ABC):
         """Load all contacts from storage."""
 
     @abstractmethod
-    def save_contacts(self, contacts: list[Contact]) -> None:
+    def save_contacts(self, contacts: Iterable[Contact]) -> None:
         """Save all contacts to storage."""
 
     @abstractmethod
@@ -24,5 +25,5 @@ class BaseStorage(ABC):
         """Load all notes from storage."""
 
     @abstractmethod
-    def save_notes(self, notes: list[Note]) -> None:
+    def save_notes(self, notes: Iterable[Note]) -> None:
         """Save all notes to storage."""

@@ -1,4 +1,4 @@
-# Python cache
+# Python bytecode / caches
 __pycache__/
 *.py[cod]
 *$py.class
@@ -9,19 +9,24 @@ venv/
 env/
 ENV/
 
-# Environment files
+# Environment / local config
 .env
 .env.*
 .envrc
+.python-version
+.pdm-python
+__pypackages__/
+.pypirc
 
 # Build / packaging
 build/
 dist/
 .eggs/
-*.egg-info/
 *.egg
+*.egg-info/
 
-# Tool caches
+
+# Test / lint / type-check caches
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -44,20 +49,17 @@ htmlcov/
 !.vscode/extensions.json
 .idea/
 
+# Jupyter
+.ipynb_checkpoints/
+
 # OS files
 .DS_Store
 Thumbs.db
 
-# Jupyter
-.ipynb_checkpoints/
-
-# Python version / package manager local files
-.python-version
-.pdm-python
-__pypackages__/
-
-# Local secrets
-.pypirc
+# Local databases / app data
+*.sqlite3
+*.sqlite3-journal
+data/
 
 # Cursor
 .cursorignore
@@ -65,9 +67,5 @@ __pypackages__/
 
 # Local temp / backup files
 *.backup
-*.tmp
+*.tmp 
 
-# Optional local database files
-*.sqlite3
-*.sqlite3-journal 
-data/

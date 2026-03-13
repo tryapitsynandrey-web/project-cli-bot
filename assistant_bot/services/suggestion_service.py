@@ -1,5 +1,7 @@
 """Command suggestion service for typo correction."""
 
+from __future__ import annotations
+
 from assistant_bot.cli.parser import CommandParser
 from assistant_bot.utils.fuzzy_match import find_all_similar, find_closest_match
 
@@ -12,13 +14,23 @@ class SuggestionService:
         """Return all command tokens available for matching."""
         return CommandParser.get_all_command_tokens()
 
-    def suggest_command(self, user_input: str, threshold: float = 0.6) -> str | None:
+    @staticmethod
+    def _normalize_input(user_input: str) -> str:
+        """Normalize raw user input for fuzzy matching."""
+        return user_input.strip().lower()
+
+    def suggest_command(
+        self,
+        user_input: str,
+        threshold: float = 0.6,
+    ) -> str | None:
         """Return the closest matching canonical command."""
-        if not user_input or not user_input.strip():
+        normalized_input = self._normalize_input(user_input)
+        if not normalized_input:
             return None
 
         raw_match = find_closest_match(
-            user_input.strip().lower(),
+            normalized_input,
             self._command_candidates(),
             threshold,
         )
@@ -34,11 +46,12 @@ class SuggestionService:
         limit: int = 3,
     ) -> list[str]:
         """Return multiple similar canonical commands."""
-        if not user_input or not user_input.strip():
+        normalized_input = self._normalize_input(user_input)
+        if not normalized_input:
             return []
 
         raw_matches = find_all_similar(
-            user_input.strip().lower(),
+            normalized_input,
             self._command_candidates(),
             threshold,
         )
@@ -50,6 +63,7 @@ class SuggestionService:
             canonical = CommandParser.normalize_command_name(match)
             if canonical in seen:
                 continue
+
             canonical_matches.append(canonical)
             seen.add(canonical)
 

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from assistant_bot.domain.contacts import Contact
 from assistant_bot.domain.exceptions import StorageError
@@ -15,6 +16,11 @@ from assistant_bot.storage.paths import get_contacts_file, get_notes_file
 
 T = TypeVar("T")
 
+JSON_INDENT = 2
+JSON_ENCODING = "utf-8"
+BACKUP_SUFFIX = ".backup"
+TEMP_SUFFIX = ".tmp"
+
 
 class JSONStorage(BaseStorage):
     """JSON file-based storage for contacts and notes."""
@@ -23,7 +29,10 @@ class JSONStorage(BaseStorage):
         """Initialize JSON storage paths."""
         self.contacts_file = get_contacts_file()
         self.notes_file = get_notes_file()
+        self._ensure_storage_directories()
 
+    def _ensure_storage_directories(self) -> None:
+        """Ensure parent directories for storage files exist."""
         self.contacts_file.parent.mkdir(parents=True, exist_ok=True)
         self.notes_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -32,25 +41,25 @@ class JSONStorage(BaseStorage):
         if not file_path.exists():
             return
 
-        backup_path = Path(f"{file_path}.backup")
+        backup_path = Path(f"{file_path}{BACKUP_SUFFIX}")
         counter = 1
 
         while backup_path.exists():
-            backup_path = Path(f"{file_path}.backup.{counter}")
+            backup_path = Path(f"{file_path}{BACKUP_SUFFIX}.{counter}")
             counter += 1
 
         try:
             file_path.rename(backup_path)
-        except (OSError, IOError):
+        except OSError:
             pass
 
     def _atomic_write(self, file_path: Path, data: object) -> None:
         """Write JSON data atomically to reduce corruption risk."""
-        tmp_path = file_path.with_suffix(file_path.suffix + ".tmp")
+        tmp_path = file_path.with_suffix(file_path.suffix + TEMP_SUFFIX)
 
         try:
-            with tmp_path.open("w", encoding="utf-8") as file:
-                json.dump(data, file, indent=2, ensure_ascii=False)
+            with tmp_path.open("w", encoding=JSON_ENCODING) as file:
+                json.dump(data, file, indent=JSON_INDENT, ensure_ascii=False)
                 file.flush()
                 os.fsync(file.fileno())
 
@@ -59,16 +68,20 @@ class JSONStorage(BaseStorage):
             try:
                 if tmp_path.exists():
                     tmp_path.unlink()
-            except (OSError, IOError):
+            except OSError:
                 pass
 
-    def _load_generic(self, file_path: Path, factory: Callable[[dict], T]) -> list[T]:
+    def _load_generic(
+        self,
+        file_path: Path,
+        factory: Callable[[dict[str, object]], T],
+    ) -> list[T]:
         """Load JSON data and convert dictionaries into domain objects."""
         if not file_path.exists():
             return []
 
         try:
-            with file_path.open("r", encoding="utf-8") as file:
+            with file_path.open("r", encoding=JSON_ENCODING) as file:
                 raw_data = json.load(file)
 
             if not isinstance(raw_data, list):
@@ -96,28 +109,28 @@ class JSONStorage(BaseStorage):
         """Load contacts from JSON storage."""
         try:
             return self._load_generic(self.contacts_file, Contact.from_dict)
-        except (OSError, IOError) as error:
+        except OSError as error:
             raise StorageError(f"Failed to load contacts: {error}") from error
 
-    def save_contacts(self, contacts: list[Contact]) -> None:
+    def save_contacts(self, contacts: Iterable[Contact]) -> None:
         """Save contacts to JSON storage."""
         try:
             data = [contact.to_dict() for contact in contacts]
             self._atomic_write(self.contacts_file, data)
-        except (OSError, IOError) as error:
+        except OSError as error:
             raise StorageError(f"Failed to save contacts: {error}") from error
 
     def load_notes(self) -> list[Note]:
         """Load notes from JSON storage."""
         try:
             return self._load_generic(self.notes_file, Note.from_dict)
-        except (OSError, IOError) as error:
+        except OSError as error:
             raise StorageError(f"Failed to load notes: {error}") from error
 
-    def save_notes(self, notes: list[Note]) -> None:
+    def save_notes(self, notes: Iterable[Note]) -> None:
         """Save notes to JSON storage."""
         try:
             data = [note.to_dict() for note in notes]
             self._atomic_write(self.notes_file, data)
-        except (OSError, IOError) as error:
+        except OSError as error:
             raise StorageError(f"Failed to save notes: {error}") from error

@@ -1,15 +1,15 @@
 # Personal Assistant CLI
 
-![Python](https://img.shields.io/badge/Python-3.12%2B-blue)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![Architecture](https://img.shields.io/badge/Architecture-Layered-success)
 ![Storage](https://img.shields.io/badge/Storage-JSON-informational)
 ![Interface](https://img.shields.io/badge/Interface-CLI-orange)
 ![Validation](https://img.shields.io/badge/Validation-Strict-critical)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
-A structured command-line application for managing contacts and notes with persistent local storage, strict validation, intelligent command suggestions, and a readable colored terminal interface.
+A structured command-line application for managing contacts and notes with persistent local JSON storage, strict validation, interactive command handling, and a readable terminal interface.
 
-This project was developed as a team Python engineering project and follows a layered architecture with clear separation between domain models, business logic, persistence, CLI interaction, and shared utilities.
+This project was developed as a team Python engineering project and follows a layered architecture with clear separation between domain models, business logic, repositories, storage, CLI interaction, and shared utilities.
 
 ## Team
 
@@ -20,8 +20,8 @@ This project was developed as a team Python engineering project and follows a la
 
 ## Table of Contents
 
-- [Project Goal](#project-goal)
-- [Core Functionality](#core-functionality)
+- [Overview](#overview)
+- [Core Features](#core-features)
 - [Technology Stack](#technology-stack)
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -31,25 +31,28 @@ This project was developed as a team Python engineering project and follows a la
 - [Usage Examples](#usage-examples)
 - [Data Storage](#data-storage)
 - [Validation Rules](#validation-rules)
+- [Testing](#testing)
 - [Project Architecture](#project-architecture)
 - [Detailed Project Structure](#detailed-project-structure)
 - [Design Principles](#design-principles)
 - [Error Handling](#error-handling)
-- [Runtime Dependencies](#runtime-dependencies)
+- [Dependencies](#dependencies)
 - [Project License](#project-license)
 
-## Project Goal
+## Overview
 
-The goal of the project is to build a personal assistant application that allows a user to:
+The project is designed as a terminal-based personal assistant that allows a user to:
 
-- store and manage contacts
-- store and manage notes
+- manage contacts
+- manage notes
 - search records efficiently
-- validate critical user input
+- validate important user input
 - persist data between launches
-- work comfortably through a clean command-line interface
+- work through a structured command-line workflow
 
-## Core Functionality
+The application emphasizes clarity of architecture, predictable validation rules, clean separation of responsibilities, and testable business logic.
+
+## Core Features
 
 ### Contact Management
 
@@ -99,6 +102,7 @@ The goal of the project is to build a personal assistant application that allows
 - interactive prompts for complex actions
 - command typo suggestions
 - prompt-time completion support through `prompt-toolkit` when installed
+- structured contact and note rendering
 
 ## Technology Stack
 
@@ -107,11 +111,12 @@ The goal of the project is to build a personal assistant application that allows
 - **Storage:** JSON
 - **Validation:** `email-validator`, `phonenumbers`
 - **Interactive CLI support:** `prompt-toolkit`
-- **Architecture style:** layered architecture / service-oriented CLI design
+- **Testing:** `pytest`
+- **Architecture style:** layered architecture with repository and service layers
 
 ## Requirements
 
-- Python **3.12+**
+- Python **3.11+**
 - `pip`
 - recommended: isolated virtual environment
 
@@ -146,14 +151,30 @@ source .venv/bin/activate
 
 ### 4. Install dependencies
 
+Using the requirements file:
+
 ```bash
 pip install -r requirements.txt
 ```
 
+Or install the project in editable mode:
+
+```bash
+pip install -e .
+```
+
 ## Running the Application
+
+Run directly:
 
 ```bash
 python main.py
+```
+
+Or, after editable installation:
+
+```bash
+assistant-bot
 ```
 
 After launch, the application displays the main help menu and starts an interactive command loop.
@@ -282,16 +303,13 @@ contacts-by-tag work
 
 ## Data Storage
 
-Application data is stored locally in the user home directory:
+Application data is stored locally in the project data directory:
 
 ```text
-~/.assistant_bot/data/
+data/
+├── contacts.json
+└── notes.json
 ```
-
-Files used:
-
-- `contacts.json`
-- `notes.json`
 
 ### Storage Behavior
 
@@ -320,7 +338,7 @@ Files used:
 
 - optional
 - validated through `email-validator`
-- blocked fake/test domains rejected
+- blocked placeholder and suspicious addresses are rejected
 
 #### Address
 
@@ -354,6 +372,25 @@ Files used:
 - normalized and validated
 - duplicates removed
 
+## Testing
+
+Run the test suite with:
+
+```bash
+pytest
+```
+
+The project includes tests for:
+
+- domain models
+- services
+- repositories and storage behavior
+- parser and help text
+- renderer helpers
+- command registry
+- validation utilities
+- date and text utilities
+
 ## Project Architecture
 
 The project follows a layered architecture.
@@ -364,13 +401,18 @@ project-cli-bot/
 ├── .gitignore
 ├── LICENSE
 ├── README.md
+├── pyproject.toml
+├── pytest.ini
 ├── requirements.txt
 ├── main.py
+├── tests/
 └── assistant_bot/
     ├── __init__.py
+    ├── __main__.py
     ├── app.py
     ├── cli/
     ├── domain/
+    ├── repositories/
     ├── services/
     ├── storage/
     └── utils/
@@ -384,9 +426,17 @@ project-cli-bot/
 
 Application entry point. Creates the `PersonalAssistant` instance and starts the CLI loop.
 
+#### `pyproject.toml`
+
+Project packaging metadata, dependency declarations, and CLI entry point configuration.
+
 #### `requirements.txt`
 
-Contains all runtime dependencies required for the project.
+Convenience dependency list for runtime and local development setup.
+
+#### `pytest.ini`
+
+Pytest configuration for test discovery and marker handling.
 
 #### `LICENSE`
 
@@ -398,7 +448,7 @@ Defines files and folders excluded from version control.
 
 #### `.gitattributes`
 
-Defines Git text normalization and line ending handling.
+Defines Git text normalization and line-ending behavior.
 
 ### `assistant_bot/`
 
@@ -408,26 +458,26 @@ Top-level application package.
 
 Package export file.
 
+#### `assistant_bot/__main__.py`
+
+Package entry point used by the installed CLI command.
+
 #### `assistant_bot/app.py`
 
 Main application orchestrator.
 
 Responsibilities:
 
-- initialize services
-- initialize storage
+- initialize repositories and services
 - initialize command handler
-- build command dispatch table
+- build the command registry
 - run the main CLI loop
 - manage prompt session and completion support
+- render structured command results
 
 ### `assistant_bot/cli/`
 
-CLI layer: parsing input, rendering output, help text, and command handlers.
-
-#### `assistant_bot/cli/__init__.py`
-
-Exports CLI package components.
+CLI layer: parsing input, rendering output, help text, command registry, interaction helpers, and handlers.
 
 #### `assistant_bot/cli/parser.py`
 
@@ -441,19 +491,27 @@ Responsibilities:
 - expose available commands and aliases
 - support command completion token lists
 
-#### `assistant_bot/cli/handlers.py`
+#### `assistant_bot/cli/command_registry.py`
 
-Contains handlers for all user-facing commands.
+Registry for command dispatching.
 
 Responsibilities:
 
-- contact operations
-- note operations
-- tag operations
-- help handling
-- unknown command suggestions
-- interactive input flows
-- confirmation dialogs
+- register command handlers
+- retrieve handlers by command name
+- centralize command lookup behavior
+
+#### `assistant_bot/cli/interaction.py`
+
+Interactive CLI helper layer.
+
+Responsibilities:
+
+- prompt for required and optional values
+- handle CSV-style input
+- render helper hints and section intros
+- confirm destructive actions
+- support item selection flows
 
 #### `assistant_bot/cli/renderer.py`
 
@@ -462,7 +520,7 @@ Responsible for output formatting.
 Responsibilities:
 
 - colorized terminal output
-- message rendering
+- section headers
 - contact card rendering
 - note card rendering
 - compact previews
@@ -479,13 +537,31 @@ Responsibilities:
 - command help texts
 - alias mapping for help lookup
 
+#### `assistant_bot/cli/handlers/`
+
+Contains command handler mixins split by responsibility.
+
+Representative files include:
+
+- `contact_commands.py`
+- `contact_tag_commands.py`
+- `internal_helper_methods.py`
+- `note_commands.py`
+- `system_commands.py`
+
+Responsibilities:
+
+- contact operations
+- note operations
+- tag operations
+- help handling
+- unknown command suggestions
+- interactive input flows
+- confirmation dialogs
+
 ### `assistant_bot/domain/`
 
 Core domain models and exceptions.
-
-#### `assistant_bot/domain/__init__.py`
-
-Exports domain package members.
 
 #### `assistant_bot/domain/contacts.py`
 
@@ -522,13 +598,26 @@ Responsibilities:
 - define project-specific exceptions
 - separate validation, storage, and not-found errors
 
+### `assistant_bot/repositories/`
+
+Repository abstraction layer between services and storage.
+
+Representative components include:
+
+- contact repository protocol
+- note repository protocol
+- JSON-backed contact repository
+- JSON-backed note repository
+
+Responsibilities:
+
+- isolate persistence access from services
+- provide repository contracts
+- support future storage backend replacement
+
 ### `assistant_bot/services/`
 
 Business logic layer.
-
-#### `assistant_bot/services/__init__.py`
-
-Exports service package members.
 
 #### `assistant_bot/services/contact_service.py`
 
@@ -575,11 +664,7 @@ Responsibilities:
 
 ### `assistant_bot/storage/`
 
-Persistence layer.
-
-#### `assistant_bot/storage/__init__.py`
-
-Exports storage package members.
+Low-level persistence layer.
 
 #### `assistant_bot/storage/base.py`
 
@@ -598,7 +683,7 @@ Responsibilities:
 - load contacts and notes from JSON
 - save contacts and notes atomically
 - create backups for corrupted files
-- isolate persistence details from business logic
+- isolate file system persistence details
 
 #### `assistant_bot/storage/paths.py`
 
@@ -612,10 +697,6 @@ Responsibilities:
 ### `assistant_bot/utils/`
 
 Utility modules shared across layers.
-
-#### `assistant_bot/utils/__init__.py`
-
-Exports utility functions.
 
 #### `assistant_bot/utils/validators.py`
 
@@ -648,8 +729,7 @@ Responsibilities:
 
 - truncate text
 - normalize whitespace
-- pluralization
-- match highlighting support
+- pluralization and formatting helpers
 
 #### `assistant_bot/utils/fuzzy_match.py`
 
@@ -666,11 +746,12 @@ Responsibilities:
 The implementation follows these engineering principles:
 
 - **Separation of concerns** — each layer has a clear role
-- **Single responsibility** — modules focus on one task
+- **Single responsibility** — modules focus on one responsibility
 - **Encapsulation** — validation and business rules remain inside models and services
 - **Extensibility** — storage and CLI behavior can be extended with minimal coupling
 - **Explicit error handling** — predictable exception flow
-- **Readable CLI UX** — command help, aliases, colored feedback, structured rendering
+- **Readable CLI UX** — command help, aliases, colored feedback, and structured rendering
+- **Testability** — repository and service boundaries support isolated testing
 
 ## Error Handling
 
@@ -685,39 +766,18 @@ The application handles the following safely:
 - corrupted JSON storage files
 - destructive actions through explicit confirmation
 
-## Runtime Dependencies
+## Dependencies
 
-Runtime dependencies used in the project:
-
-```txt
-email-validator==2.3.0
-dnspython==2.7.0
-phonenumbers==9.0.25
-prompt-toolkit==3.0.52
-wcwidth==0.2.13
-```
-
-### Dependency Purpose
+Main project dependencies:
 
 - **email-validator** — strict email syntax and deliverability validation
-- **dnspython** — DNS support required for email deliverability checks
 - **phonenumbers** — real phone parsing and validation
 - **prompt-toolkit** — interactive command suggestions and completion
-- **wcwidth** — terminal width handling used by prompt-toolkit
+- **colorama** — terminal color support
 
-## Professional Notes
+Testing dependency:
 
-This README intentionally documents:
-
-- installation
-- runtime dependencies
-- architecture
-- module responsibilities
-- command set
-- validation rules
-- storage behavior
-
-This level of documentation is provided to satisfy project delivery requirements and to make the repository understandable for mentors, reviewers, collaborators, and future maintainers.
+- **pytest** — automated test execution
 
 ## Project License
 

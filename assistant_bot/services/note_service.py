@@ -1,57 +1,87 @@
 """Note management service."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable
+
 from assistant_bot.domain.exceptions import NoteNotFoundError
 from assistant_bot.domain.notes import Note
-from assistant_bot.storage.base import BaseStorage
+from assistant_bot.repositories.note_repository import NoteRepository
 
 
 class NoteService:
     """Service for managing notes."""
 
-    def __init__(self, storage: BaseStorage) -> None:
+    def __init__(self, repository: NoteRepository) -> None:
         """Initialize the note service."""
-        self.storage = storage
-        self.notes: list[Note] = []
+        self.repository = repository
+        self._notes: list[Note] = []
         self._load()
 
     def _load(self) -> None:
-        """Load notes from storage."""
-        self.notes = self.storage.load_notes()
+        """Load notes from repository."""
+        self._notes = self.repository.load_all()
 
     def _save(self) -> None:
-        """Persist notes to storage."""
-        self.storage.save_notes(self.notes)
+        """Persist notes to repository."""
+        self.repository.save_all(self._notes)
 
     @staticmethod
-    def _sort_by_created(notes: list[Note], descending: bool = True) -> list[Note]:
+    def _sort_by_created(
+        notes: Iterable[Note],
+        descending: bool = True,
+    ) -> list[Note]:
         """Return notes sorted by creation time."""
         return sorted(notes, key=lambda note: note.created_at, reverse=descending)
+
+    @staticmethod
+    def _sort_by_updated(
+        notes: Iterable[Note],
+        descending: bool = True,
+    ) -> list[Note]:
+        """Return notes sorted by last update time."""
+        return sorted(notes, key=lambda note: note.updated_at, reverse=descending)
+
+    @staticmethod
+    def _sort_by_tag_count(
+        notes: Iterable[Note],
+        descending: bool = True,
+    ) -> list[Note]:
+        """Return notes sorted by number of tags."""
+        return sorted(notes, key=lambda note: len(note.tags), reverse=descending)
+
+    def _find_note_by_id(self, note_id: str) -> Note | None:
+        """Return a note by ID or None if it does not exist."""
+        for note in self._notes:
+            if note.note_id == note_id:
+                return note
+        return None
 
     def add_note(self, content: str, tags: list[str] | None = None) -> Note:
         """Create and store a new note."""
         note = Note.create(content=content, tags=tags or [])
-        self.notes.append(note)
+        self._notes.append(note)
         self._save()
         return note
 
     def get_note(self, note_id: str) -> Note:
         """Return a note by ID."""
-        for note in self.notes:
-            if note.note_id == note_id:
-                return note
-        raise NoteNotFoundError(f"Note {note_id} not found")
+        note = self._find_note_by_id(note_id)
+        if note is None:
+            raise NoteNotFoundError(f"Note {note_id} not found")
+        return note
 
     def get_all_notes(self) -> list[Note]:
         """Return all notes sorted by creation time, newest first."""
-        return self._sort_by_created(self.notes)
+        return self._sort_by_created(self._notes)
 
     def get_notes_sorted_by_tags(self, descending: bool = True) -> list[Note]:
         """Return notes sorted by number of tags."""
-        return sorted(self.notes, key=lambda note: len(note.tags), reverse=descending)
+        return self._sort_by_tag_count(self._notes, descending=descending)
 
     def get_notes_sorted_by_updated(self, descending: bool = True) -> list[Note]:
         """Return notes sorted by last update time."""
-        return sorted(self.notes, key=lambda note: note.updated_at, reverse=descending)
+        return self._sort_by_updated(self._notes, descending=descending)
 
     def update_note(
         self,
@@ -68,32 +98,45 @@ class NoteService:
     def delete_note(self, note_id: str) -> None:
         """Delete a note by ID."""
         note = self.get_note(note_id)
-        self.notes.remove(note)
+        self._notes.remove(note)
         self._save()
 
     def search_notes(self, query: str) -> list[Note]:
         """Search notes by content or tags."""
-        results = [note for note in self.notes if note.matches_search(query)]
+        results = [
+            note
+            for note in self._notes
+            if note.matches_search(query)
+        ]
         return self._sort_by_created(results)
 
     def get_notes_by_tag(self, tag: str) -> list[Note]:
         """Return notes that contain the given tag."""
-        results = [note for note in self.notes if note.has_tag(tag)]
+        results = [
+            note
+            for note in self._notes
+            if note.has_tag(tag)
+        ]
         return self._sort_by_created(results)
 
     def get_notes_by_any_tag(self, tags: list[str]) -> list[Note]:
         """Return notes that contain at least one of the given tags."""
-        results = [note for note in self.notes if note.has_any_tag(tags)]
+        results = [
+            note
+            for note in self._notes
+            if note.has_any_tag(tags)
+        ]
         return self._sort_by_created(results)
 
     def get_notes_by_all_tags(self, tags: list[str]) -> list[Note]:
         """Return notes that contain all of the given tags."""
-        results = [note for note in self.notes if note.has_all_tags(tags)]
+        results = [
+            note
+            for note in self._notes
+            if note.has_all_tags(tags)
+        ]
         return self._sort_by_created(results)
 
     def get_all_tags(self) -> set[str]:
         """Return all unique tags used across notes."""
-        all_tags: set[str] = set()
-        for note in self.notes:
-            all_tags.update(note.tags)
-        return all_tags
+        return {tag for note in self._notes for tag in note.tags}

@@ -1,9 +1,14 @@
 """Birthday-related service utilities."""
 
+from __future__ import annotations
+
 from typing import TypedDict
 
 from assistant_bot.services.contact_service import ContactService
 from assistant_bot.utils.datetime_utils import format_birthday_with_days
+
+
+DEFAULT_BIRTHDAY_LOOKAHEAD_DAYS = 7
 
 
 class BirthdayInfo(TypedDict):
@@ -23,12 +28,15 @@ class BirthdayService:
         """Initialize the birthday service."""
         self.contact_service = contact_service
 
-    def get_upcoming_birthdays(self, days: int = 7) -> list[BirthdayInfo]:
-        """Return contacts with birthdays in the next given number of days."""
-        if days < 1:
-            days = 7
+    @staticmethod
+    def _normalize_days(days: int) -> int:
+        """Normalize the requested birthday lookahead window."""
+        return days if days > 0 else DEFAULT_BIRTHDAY_LOOKAHEAD_DAYS
 
-        upcoming = self.contact_service.get_contacts_with_birthday_in_days(days)
+    def get_upcoming_birthdays(self, days: int = DEFAULT_BIRTHDAY_LOOKAHEAD_DAYS) -> list[BirthdayInfo]:
+        """Return contacts with birthdays in the next given number of days."""
+        normalized_days = self._normalize_days(days)
+        upcoming = self.contact_service.get_contacts_with_birthday_in_days(normalized_days)
 
         return [
             BirthdayInfo(

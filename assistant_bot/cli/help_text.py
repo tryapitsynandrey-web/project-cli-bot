@@ -1,6 +1,16 @@
 """CLI help text definitions and rendering utilities."""
 
-MENU_WIDTH = 60
+from __future__ import annotations
+
+MENU_WIDTH = 64
+INNER_PADDING = 2
+COLUMN_GAP = 3
+
+MENU_TITLE = "Personal Assistant - Command Menu"
+MAIN_HELP_FOOTER = [
+    "Type 'help <command>' for command details.",
+    "Tip: Use aliases in parentheses for faster typing.",
+]
 
 MENU_SECTIONS: dict[str, list[tuple[str, str]]] = {
     "CONTACTS": [
@@ -254,35 +264,119 @@ ALIASES: dict[str, str] = {
 }
 
 
-def _render_menu_line(command: str, description: str) -> str:
+def _truncate(text: str, width: int) -> str:
+    """Truncate text to the target width."""
+    if width <= 0:
+        return ""
+    if len(text) <= width:
+        return text
+    if width == 1:
+        return "…"
+    return text[: width - 1].rstrip() + "…"
+
+
+def _horizontal(char: str) -> str:
+    """Build a horizontal line segment for the menu width."""
+    return char * MENU_WIDTH
+
+
+def _blank_line() -> str:
+    """Render an empty menu line."""
+    return f"║{'':{MENU_WIDTH}}║"
+
+
+def _menu_columns() -> tuple[int, int]:
+    """Return computed widths for command and description columns."""
+    available = MENU_WIDTH - (INNER_PADDING * 2) - COLUMN_GAP
+    longest_command = max(
+        len(command)
+        for items in MENU_SECTIONS.values()
+        for command, _ in items
+    )
+
+    command_width = min(longest_command, max(18, available // 2))
+    description_width = max(10, available - command_width)
+
+    return command_width, description_width
+
+
+def _render_menu_line(
+    command: str,
+    description: str,
+    command_width: int | None = None,
+    description_width: int | None = None,
+) -> str:
     """Render one formatted menu row."""
-    return f"║  {command:<23}  {description:<33}║"
+    if command_width is None or description_width is None:
+        command_width, description_width = _menu_columns()
+
+    command_text = _truncate(command, command_width)
+    description_text = _truncate(description, description_width)
+
+    content = (
+        f"{' ' * INNER_PADDING}"
+        f"{command_text:<{command_width}}"
+        f"{' ' * COLUMN_GAP}"
+        f"{description_text:<{description_width}}"
+        f"{' ' * INNER_PADDING}"
+    )
+    return f"║{content}║"
 
 
-def _render_section(title: str, items: list[tuple[str, str]]) -> list[str]:
+def _render_section(
+    title: str,
+    items: list[tuple[str, str]],
+    command_width: int | None = None,
+    description_width: int | None = None,
+) -> list[str]:
     """Render one menu section."""
-    lines = [f"║  {title}:{'':>{MENU_WIDTH - len(title) - 4}}║"]
-    lines.extend(_render_menu_line(command, description) for command, description in items)
-    lines.append(f"║{'':{MENU_WIDTH}}║")
+    if command_width is None or description_width is None:
+        command_width, description_width = _menu_columns()
+
+    title_line = (
+        f"║{' ' * INNER_PADDING}"
+        f"{title}:"
+        f"{'':<{MENU_WIDTH - INNER_PADDING - len(title) - 1}}║"
+    )
+
+    lines = [title_line]
+    lines.extend(
+        _render_menu_line(
+            command,
+            description,
+            command_width,
+            description_width,
+        )
+        for command, description in items
+    )
+    lines.append(_blank_line())
     return lines
 
 
 def build_main_help() -> str:
     """Build the main command menu."""
+    command_width, description_width = _menu_columns()
+
     lines = [
-        "╔════════════════════════════════════════════════════════════╗",
-        f"║{'Personal Assistant - Command Menu':^{MENU_WIDTH}}║",
-        "╠════════════════════════════════════════════════════════════╣",
-        f"║{'':{MENU_WIDTH}}║",
+        f"╔{_horizontal('═')}╗",
+        f"║{MENU_TITLE:^{MENU_WIDTH}}║",
+        f"╠{_horizontal('═')}╣",
+        _blank_line(),
     ]
 
     for section_name, section_items in MENU_SECTIONS.items():
-        lines.extend(_render_section(section_name, section_items))
+        lines.extend(
+            _render_section(
+                section_name,
+                section_items,
+                command_width,
+                description_width,
+            )
+        )
 
-    lines.append("╚════════════════════════════════════════════════════════════╝")
+    lines.append(f"╚{_horizontal('═')}╝")
     lines.append("")
-    lines.append("Type 'help <command>' for command details.")
-    lines.append("Tip: Use aliases in parentheses for faster typing.")
+    lines.extend(MAIN_HELP_FOOTER)
 
     return "\n".join(lines)
 
